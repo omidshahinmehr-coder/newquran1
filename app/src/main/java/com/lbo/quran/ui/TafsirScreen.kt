@@ -77,6 +77,7 @@ fun TafsirScreen(
 
             LazyColumn(Modifier.fillMaxSize().padding(16.dp)) {
                 items(state.entries) { entry ->
+                    val sourceLabel = if (entry.language == "fa") "ترجمه تفسیر البرهان" else "تفسیر البرهان"
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(settings.tafsirBackgroundColor))
@@ -84,15 +85,8 @@ fun TafsirScreen(
                         Column(Modifier.padding(16.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalArrangement = Arrangement.End
                             ) {
-                                val sourceLabel = if (entry.language == "fa") "ترجمه تفسیر البرهان" else "تفسیر البرهان"
-                                Text(
-                                    sourceLabel,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color(settings.tafsirTextColor)
-                                )
                                 IconButton(
                                     onClick = {
                                         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -114,7 +108,6 @@ fun TafsirScreen(
                                     )
                                 }
                             }
-                            Spacer(Modifier.height(8.dp))
                             SelectionContainer {
                                 Text(
                                     entry.text,
