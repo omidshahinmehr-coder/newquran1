@@ -123,7 +123,8 @@ class QuranRepository(private val context: Context) {
         val result = mutableListOf<TafsirEntity>()
         val cursor = db.rawQuery(
             "SELECT t_id, t_text, t_type, t_part, t_start, t_end, t_page FROM $table " +
-                "WHERE t_start != '000000' AND t_start <= ? AND (t_end = '' OR t_end IS NULL OR t_end >= ?) " +
+                "WHERE t_type = 0 AND t_start != '000000' AND t_start <= ? " +
+                "AND (CASE WHEN t_end IS NULL OR t_end = '' THEN t_start ELSE t_end END) >= ? " +
                 "ORDER BY t_id",
             arrayOf(aId, aId)
         )
@@ -152,16 +153,25 @@ class QuranRepository(private val context: Context) {
         val result = mutableSetOf<String>()
         for (table in listOf("tafsir_ar", "tafsir_fa")) {
             val cursor = db.rawQuery(
-                "SELECT DISTINCT t_start, t_end FROM $table WHERE t_start != '000000' AND t_start != ''",
+                "SELECT DISTINCT t_start, t_end FROM $table WHERE t_type = 0 AND t_start != '000000' AND t_start != ''",
                 null
             )
             cursor.use {
                 while (it.moveToNext()) {
                     val start = it.getString(0) ?: continue
                     val end = it.getString(1)?.takeIf { e -> e.isNotBlank() } ?: start
-                    if (start.length == 6 && end.length == 6) {
+                    if (start.length != 6 || end.length != 6) continue
+                    val surah = start.substring(0, 3)
+                    if (surah != end.substring(0, 3)) {
+                        // بازه‌ی بین دو سوره‌ی متفاوت -- فقط دو سرِ بازه را علامت بزن (حالت نادر)
                         result += start
                         result += end
+                        continue
+                    }
+                    val startAyah = start.substring(3, 6).toIntOrNull() ?: continue
+                    val endAyah = end.substring(3, 6).toIntOrNull() ?: continue
+                    for (a in startAyah..endAyah) {
+                        result += surah + String.format("%03d", a)
                     }
                 }
             }
