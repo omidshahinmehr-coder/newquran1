@@ -21,8 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-private val SURAHS_WITHOUT_SEPARATE_BISMILLAH_VM = setOf(1, 9)
-
 data class BookmarksUiState(
     val bookmarks: List<AyahEntity> = emptyList(),
     val surahNames: Map<Int, String> = emptyMap(),
@@ -164,6 +162,8 @@ class QuranViewModel(
         val translations = repo.getAllTranslations(currentTranslationLanguage())
         val tafsirIds = repo.getAyahIdsWithTafsir()
         val juzList = repo.getJuzList()
+        val allWords = repo.getAllWords()
+        val wordsByAyah = allWords.groupBy { it.aId }
 
         val items = mutableListOf<ReadingItem>()
         val ayahItemIndex = HashMap<String, Int>()
@@ -172,16 +172,20 @@ class QuranViewModel(
 
         for (ayah in allAyat) {
             val surahName = surahNames[ayah.surahNumber] ?: ""
+            val wordsForAyah = wordsByAyah[ayah.aId] ?: emptyList()
+            val bismillahWords = wordsForAyah.filter { it.type == 6 }
+            val mainWords = wordsForAyah.filter { it.type != 6 }
+
             if (ayah.surahNumber != lastSurah) {
                 surahItemIndex[ayah.surahNumber] = items.size
                 items += ReadingItem.SurahHeader(ayah.surahNumber, surahName)
-                if (ayah.surahNumber !in SURAHS_WITHOUT_SEPARATE_BISMILLAH_VM) {
-                    items += ReadingItem.Bismillah(ayah.surahNumber)
+                if (bismillahWords.isNotEmpty()) {
+                    items += ReadingItem.Bismillah(ayah.surahNumber, bismillahWords)
                 }
                 lastSurah = ayah.surahNumber
             }
             ayahItemIndex[ayah.aId] = items.size
-            items += ReadingItem.Ayah(ayah, surahName)
+            items += ReadingItem.Ayah(ayah, surahName, mainWords)
         }
 
         val juzAyahIndex = juzList.associate { it.juzNumber to (ayahItemIndex[it.startAId] ?: 0) }
