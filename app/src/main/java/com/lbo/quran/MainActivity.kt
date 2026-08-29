@@ -34,7 +34,6 @@ import com.lbo.quran.ui.SplashScreen
 import com.lbo.quran.ui.SurahPickerScreen
 import com.lbo.quran.ui.TafsirBrowseScreen
 import com.lbo.quran.ui.TafsirScreen
-import com.lbo.quran.ui.TafsirSurahListScreen
 import com.lbo.quran.ui.theme.AppTypography
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -80,7 +79,7 @@ fun QuranApp() {
                 onOpenSurahPicker = { navController.navigate("surahPicker") },
                 onOpenJuzPicker = { navController.navigate("juzPicker") },
                 onOpenSearch = { navController.navigate("search") },
-                onOpenTafsirBrowse = { navController.navigate("tafsirSurahList") },
+                onOpenTafsirBrowse = { navController.navigate("tafsirBrowse") },
                 onOpenSettings = { navController.navigate("settings") },
                 onOpenAbout = { navController.navigate("about") },
                 onOpenBookmarks = { navController.navigate("bookmarks") },
@@ -132,22 +131,9 @@ fun QuranApp() {
             AboutScreen(onBack = { navController.popBackStack() })
         }
 
-        composable("tafsirSurahList") {
-            TafsirSurahListScreen(
-                viewModel = viewModel,
-                onBack = { navController.popBackStack() },
-                onOpenTafsirForSurah = { surahNumber -> navController.navigate("tafsirBrowse/$surahNumber") }
-            )
-        }
-
-        composable(
-            "tafsirBrowse/{surahNumber}",
-            arguments = listOf(navArgument("surahNumber") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val surahNumber = backStackEntry.arguments?.getInt("surahNumber") ?: 1
+        composable("tafsirBrowse") {
             TafsirBrowseScreen(
                 viewModel = viewModel,
-                surahNumber = surahNumber,
                 onBack = { navController.popBackStack() }
             )
         }
