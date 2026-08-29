@@ -134,6 +134,19 @@ class QuranRepository(private val context: Context) {
         result
     }
 
+    suspend fun getAllTafsir(language: String): List<TafsirEntity> = withContext(Dispatchers.IO) {
+        val table = if (language == TAFSIR_LANG_FA) "tafsir_fa" else "tafsir_ar"
+        val result = mutableListOf<TafsirEntity>()
+        val cursor = db.rawQuery(
+            "SELECT t_id, t_text, t_type, t_part, t_start, t_end, t_page FROM $table ORDER BY t_id",
+            null
+        )
+        cursor.use {
+            while (it.moveToNext()) result += it.toTafsir(language)
+        }
+        result
+    }
+
     suspend fun getTafsirForSurah(surahNumber: Int, language: String): List<TafsirEntity> = withContext(Dispatchers.IO) {
         val table = if (language == TAFSIR_LANG_FA) "tafsir_fa" else "tafsir_ar"
         val prefix = String.format("%03d", surahNumber)
