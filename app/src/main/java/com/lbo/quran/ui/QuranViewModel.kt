@@ -64,8 +64,7 @@ data class TafsirUiState(
 }
 
 data class TafsirBrowseUiState(
-    val surahNumber: Int = 0,
-    val surahName: String = "",
+    val surahFilter: Int? = null, // null یعنی کل کتاب
     val entriesAr: List<TafsirEntity> = emptyList(),
     val entriesFa: List<TafsirEntity> = emptyList(),
     val language: String = "ar",
@@ -133,15 +132,13 @@ class QuranViewModel(
         if (langChanged) refreshTranslations()
     }
 
-    fun loadTafsirBrowse(surahNumber: Int) = viewModelScope.launch {
+    fun loadTafsirBrowse(surahNumber: Int?) = viewModelScope.launch {
         val keepLang = _tafsirBrowse.value.language
-        _tafsirBrowse.value = TafsirBrowseUiState(surahNumber = surahNumber, language = keepLang, loading = true)
-        val entriesAr = repo.getTafsirForSurah(surahNumber, "ar")
-        val entriesFa = repo.getTafsirForSurah(surahNumber, "fa")
-        val surahName = repo.getSurahName(surahNumber)
+        _tafsirBrowse.value = TafsirBrowseUiState(surahFilter = surahNumber, language = keepLang, loading = true)
+        val entriesAr = if (surahNumber == null) repo.getAllTafsir("ar") else repo.getTafsirForSurah(surahNumber, "ar")
+        val entriesFa = if (surahNumber == null) repo.getAllTafsir("fa") else repo.getTafsirForSurah(surahNumber, "fa")
         _tafsirBrowse.value = TafsirBrowseUiState(
-            surahNumber = surahNumber,
-            surahName = surahName,
+            surahFilter = surahNumber,
             entriesAr = entriesAr,
             entriesFa = entriesFa,
             language = keepLang,
