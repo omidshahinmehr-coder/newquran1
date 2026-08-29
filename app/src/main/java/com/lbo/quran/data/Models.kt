@@ -11,6 +11,17 @@ data class AyahEntity(
     val juz: Int
 )
 
+/**
+ * یک کلمه/نشانه از جدول Words_taha.
+ * w_type: 1=کلمه عادی، 3=شماره پایان آیه، 6=بخشی از بسم‌الله،
+ *         0 و 4=علائم وقف (صلی/قلی/...)، 5=نشانه ربع‌حزب، 7=نشانه سجده
+ */
+data class WordEntity(
+    val aId: String,
+    val text: String,
+    val type: Int
+)
+
 data class SurahInfo(
     val surahNumber: Int,
     val nameFa: String,
@@ -60,6 +71,6 @@ data class SearchResult(
 /** یک آیتم در فهرست پیوسته‌ی متن کامل قرآن (برای صفحه اصلی) */
 sealed class ReadingItem {
     data class SurahHeader(val surahNumber: Int, val surahNameFa: String) : ReadingItem()
-    data class Bismillah(val surahNumber: Int) : ReadingItem()
-    data class Ayah(val ayah: AyahEntity, val surahNameFa: String) : ReadingItem()
+    data class Bismillah(val surahNumber: Int, val words: List<WordEntity>) : ReadingItem()
+    data class Ayah(val ayah: AyahEntity, val surahNameFa: String, val words: List<WordEntity>) : ReadingItem()
 }
