@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -23,16 +22,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lbo.quran.data.ReadingItem
+import com.lbo.quran.data.WordEntity
 import com.lbo.quran.ui.theme.quranFontByKey
 import com.lbo.quran.ui.theme.translationFontByKey
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+
+private val WAQF_MARK_COLOR = Color(0xFF8B0000)   // زرشکی برای علائم وقف/سکته/سجده/حزب
+private val BISMILLAH_COLOR = Color(0xFFB8860B)   // رنگ متفاوت (طلایی تیره) برای بسم‌الله
+
+/** ساخت متن حاشیه‌دار (رنگی) آیه از روی کلمات جدول Words_taha */
+private fun buildWordsAnnotatedString(words: List<WordEntity>, textColor: Color): AnnotatedString =
+    buildAnnotatedString {
+        words.forEachIndexed { index, w ->
+            if (index > 0) append(" ")
+            val display = if (w.type == 3) "(${w.text})" else w.text
+            val color = when (w.type) {
+                0, 4, 5, 7 -> WAQF_MARK_COLOR
+                else -> textColor
+            }
+            withStyle(SpanStyle(color = color)) { append(display) }
+        }
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,21 +115,25 @@ fun HomeScreen(
         }
     }
 
-    // نام سوره‌ای که در حال حاضر بالای صفحه دیده می‌شود؛ با اسکرول به‌روزرسانی می‌شود
-    val currentSurahName by remember {
+    // اطلاعات آیه‌ای که هم‌اکنون بالای صفحه قرار دارد (نام سوره، جزء، حزب، صفحه)؛ با اسکرول به‌روزرسانی می‌شود
+    val currentAyahItem by remember {
         derivedStateOf {
             val items = state.items
-            if (items.isEmpty()) return@derivedStateOf ""
-            var idx = listState.firstVisibleItemIndex.coerceIn(0, items.size - 1)
-            var name = ""
-            while (idx >= 0) {
-                when (val current = items[idx]) {
-                    is ReadingItem.SurahHeader -> { name = current.surahNameFa; break }
-                    is ReadingItem.Ayah -> { name = current.surahNameFa; break }
-                    is ReadingItem.Bismillah -> { idx-- }
-                }
+            if (items.isEmpty()) return@derivedStateOf null
+            val start = listState.firstVisibleItemIndex.coerceIn(0, items.size - 1)
+            var idx = start
+            while (idx < items.size) {
+                val current = items[idx]
+                if (current is ReadingItem.Ayah) return@derivedStateOf current
+                idx++
             }
-            name
+            idx = start
+            while (idx >= 0) {
+                val current = items[idx]
+                if (current is ReadingItem.Ayah) return@derivedStateOf current
+                idx--
+            }
+            null
         }
     }
 
@@ -213,15 +238,44 @@ fun HomeScreen(
                             }
                         }
                     )
-                    if (currentSurahName.isNotBlank()) {
+                    currentAyahItem?.let { meta ->
                         Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
-                            Text(
-                                currentSurahName,
-                                style = MaterialTheme.typography.titleMedium,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "جزء ${meta.ayah.juz}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Start
+                                )
+                                Text(
+                                    meta.surahNameFa,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.weight(2f)
+                                )
+                                Text(
+                                    "حزب ${meta.ayah.hizb}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.End
+                                )
+                            }
                         }
+                    }
+                }
+            },
+            bottomBar = {
+                currentAyahItem?.let { meta ->
+                    Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Text(
+                            "صفحه ${meta.ayah.page}",
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+                        )
                     }
                 }
             }
@@ -271,7 +325,7 @@ fun HomeScreen(
                         }
                         is ReadingItem.Bismillah -> {
                             Text(
-                                "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                                buildWordsAnnotatedString(item.words, BISMILLAH_COLOR),
                                 fontFamily = quranFontByKey(settings.quranFontKey),
                                 fontSize = settings.quranFontSize.sp,
                                 fontWeight = FontWeight.Medium,
@@ -294,11 +348,10 @@ fun HomeScreen(
                                     SelectionContainer {
                                         Column {
                                             Text(
-                                                "${ayah.text}  (${ayah.ayahNumber})",
+                                                buildWordsAnnotatedString(item.words, Color(settings.quranTextColor)),
                                                 fontFamily = quranFontByKey(settings.quranFontKey),
                                                 fontSize = settings.quranFontSize.sp,
                                                 lineHeight = (settings.quranFontSize * 1.9).sp,
-                                                color = Color(settings.quranTextColor),
                                                 textAlign = TextAlign.Right,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
