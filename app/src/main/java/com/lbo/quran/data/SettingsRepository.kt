@@ -3,7 +3,7 @@ package com.lbo.quran.data
 import android.content.Context
 
 data class AppSettings(
-    val quranFontKey: String = "neirizi",
+    val quranFontKey: String = "taha",
     val quranFontSize: Float = 22f,
     val translationFontKey: String = "estedad",
     val translationFontSize: Float = 16f,
@@ -19,7 +19,7 @@ class SettingsRepository(context: Context) {
         .getSharedPreferences("quran_settings", Context.MODE_PRIVATE)
 
     fun load(): AppSettings = AppSettings(
-        quranFontKey = prefs.getString(KEY_QURAN_FONT, "neirizi") ?: "neirizi",
+        quranFontKey = prefs.getString(KEY_QURAN_FONT, "taha") ?: "taha",
         quranFontSize = prefs.getFloat(KEY_QURAN_SIZE, 22f),
         translationFontKey = prefs.getString(KEY_TR_FONT, "estedad") ?: "estedad",
         translationFontSize = prefs.getFloat(KEY_TR_SIZE, 16f),
