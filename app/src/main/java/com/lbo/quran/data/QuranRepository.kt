@@ -14,6 +14,24 @@ class QuranRepository(private val context: Context) {
 
     private val db get() = QuranDatabaseHelper.getDatabase(context)
 
+    suspend fun getAllWords(): List<WordEntity> = withContext(Dispatchers.IO) {
+        val result = mutableListOf<WordEntity>()
+        val cursor = db.rawQuery(
+            "SELECT a_id, w_text, w_type FROM Words_taha ORDER BY w_id",
+            null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                result += WordEntity(
+                    aId = it.getString(0),
+                    text = it.getString(1) ?: "",
+                    type = it.getInt(2)
+                )
+            }
+        }
+        result
+    }
+
     // ---------- سوره‌ها ----------
 
     suspend fun getSurahList(): List<SurahInfo> = withContext(Dispatchers.IO) {
